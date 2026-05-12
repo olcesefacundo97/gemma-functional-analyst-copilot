@@ -2,6 +2,12 @@
 
 AI-powered workspace for Functional Analysts, Business Analysts, QA Analysts, and Product Owners. It turns messy requirements into structured delivery artifacts using Google Gemma 4.
 
+## Links
+
+- GitHub: https://github.com/olcesefacundo97/gemma-functional-analyst-copilot
+- Frontend Demo: https://gemma-functional-analyst-copilot.vercel.app
+- Backend API: https://gemma-functional-analyst-copilot.onrender.com
+
 ## Overview
 
 Functional analysis work often begins with rough meeting notes, incomplete Jira tickets, stakeholder comments, and scattered technical constraints. This MVP packages Gemma 4 into a focused product workflow that transforms that raw input into professional artifacts teams can review, test, and ship from.

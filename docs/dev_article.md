@@ -138,3 +138,15 @@ Repository:
 ```text
 https://github.com/olcesefacundo97/gemma-functional-analyst-copilot
 ```
+
+Frontend Demo:
+
+```text
+https://gemma-functional-analyst-copilot.vercel.app
+```
+
+Backend API:
+
+```text
+https://gemma-functional-analyst-copilot.onrender.com
+```
