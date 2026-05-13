@@ -10,7 +10,7 @@ services:
       - key: AI_PROVIDER
         value: google
       - key: GEMMA_MODEL
-        value: gemma-4-26b-a4b-it
+        value: gemma-3-27b-it
       - key: ALLOWED_ORIGINS
         sync: false
       - key: GOOGLE_API_KEY

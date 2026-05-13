@@ -1,35 +1,102 @@
 import os
+import logging
+from dataclasses import dataclass
 from app.prompts import SYSTEM_INSTRUCTION, build_prompt
 from app.schemas import OutputType
 
+DEFAULT_GEMMA_MODEL = "gemma-3-27b-it"
+logger = logging.getLogger(__name__)
+
+
+class GemmaProviderError(Exception):
+    def __init__(self, detail: str, status_code: int = 502) -> None:
+        self.detail = detail
+        self.status_code = status_code
+        super().__init__(detail)
+
+
+@dataclass(frozen=True)
+class GemmaRuntimeConfig:
+    provider: str
+    model: str
+    demo_mode: bool
+    has_google_api_key: bool
+
+
+def get_runtime_config() -> GemmaRuntimeConfig:
+    provider = os.getenv("AI_PROVIDER", "demo").strip().lower()
+    api_key = os.getenv("GOOGLE_API_KEY")
+    model = os.getenv("GEMMA_MODEL", DEFAULT_GEMMA_MODEL).strip() or DEFAULT_GEMMA_MODEL
+    return GemmaRuntimeConfig(
+        provider=provider,
+        model=model,
+        demo_mode=provider == "demo",
+        has_google_api_key=bool(api_key),
+    )
+
+
 class GemmaClient:
     def __init__(self) -> None:
-        provider = os.getenv("AI_PROVIDER", "google").lower()
-        api_key = os.getenv("GOOGLE_API_KEY")
-        self.model = os.getenv("GEMMA_MODEL", "gemma-4-26b-a4b-it")
-        self.demo_mode = provider == "demo" or not api_key
+        config = get_runtime_config()
+        self.provider = config.provider
+        self.model = config.model
+        self.demo_mode = config.demo_mode
         self.client = None
-        if not self.demo_mode:
-            from google import genai
 
-            self.client = genai.Client(api_key=api_key)
+        if self.provider not in {"demo", "google"}:
+            raise GemmaProviderError(
+                "Unsupported AI_PROVIDER. Use 'demo' or 'google'.",
+                status_code=503,
+            )
+
+        if self.demo_mode:
+            logger.info("Gemma provider initialized in demo mode")
+            return
+
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise GemmaProviderError(
+                "Google provider is selected but GOOGLE_API_KEY is not configured.",
+                status_code=503,
+            )
+
+        from google import genai
+        from google.genai import types
+
+        self.client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=60_000),
+        )
+        logger.info("Gemma provider initialized in google mode with model=%s", self.model)
 
     def analyze(self, raw_text: str, output_type: OutputType, project_context: str, language: str) -> str:
         if self.demo_mode:
             return self._demo_response(raw_text, output_type, project_context, language)
 
         from google.genai import types
+        from google.genai.errors import APIError
+        import httpx
+        import requests
 
         prompt = build_prompt(raw_text, output_type, project_context, language)
-        response = self.client.models.generate_content(  # type: ignore[union-attr]
-            model=self.model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.25,
-            ),
-        )
-        return response.text or "No output returned by the model."
+        logger.info("Generating analysis with provider=%s model=%s", self.provider, self.model)
+        try:
+            response = self.client.models.generate_content(  # type: ignore[union-attr]
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.25,
+                ),
+            )
+            return response.text or "No output returned by the model."
+        except APIError as exc:
+            raise _map_google_api_error(exc) from exc
+        except (TimeoutError, httpx.TimeoutException, requests.exceptions.Timeout) as exc:
+            raise GemmaProviderError(
+                "Google GenAI request timed out. Please retry in a moment.",
+                status_code=504,
+            ) from exc
 
     def _demo_response(self, raw_text: str, output_type: OutputType, project_context: str, language: str) -> str:
         source_theme = _first_sentence(raw_text)
@@ -207,3 +274,40 @@ def _first_sentence(value: str) -> str:
     if not cleaned:
         return "No source text provided."
     return cleaned.split(".")[0][:180]
+
+
+def _map_google_api_error(exc: Exception) -> GemmaProviderError:
+    code = getattr(exc, "code", None)
+    status = str(getattr(exc, "status", "") or "").upper()
+    message = str(getattr(exc, "message", "") or "")
+    logger.warning("Google GenAI API error: code=%s status=%s message=%s", code, status, message)
+
+    if code in {401, 403} or status in {"UNAUTHENTICATED", "PERMISSION_DENIED"}:
+        return GemmaProviderError(
+            "Google GenAI authentication failed. Check GOOGLE_API_KEY in the backend environment.",
+            status_code=502,
+        )
+    if code == 429 or status == "RESOURCE_EXHAUSTED":
+        return GemmaProviderError(
+            "Google GenAI quota or rate limit was reached. Please retry later or check the Google AI Studio quota.",
+            status_code=429,
+        )
+    if code == 404 or status == "NOT_FOUND":
+        return GemmaProviderError(
+            "Configured Gemma model is unavailable. Check GEMMA_MODEL in the backend environment.",
+            status_code=503,
+        )
+    if code in {408, 504} or status in {"DEADLINE_EXCEEDED", "TIMEOUT"}:
+        return GemmaProviderError(
+            "Google GenAI request timed out. Please retry in a moment.",
+            status_code=504,
+        )
+    if code and code >= 500:
+        return GemmaProviderError(
+            "Google GenAI service is temporarily unavailable. Please retry later.",
+            status_code=503,
+        )
+    return GemmaProviderError(
+        "Google GenAI request failed. Check backend logs for provider details.",
+        status_code=502,
+    )

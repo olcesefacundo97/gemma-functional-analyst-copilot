@@ -1,15 +1,18 @@
 import os
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.gemma_client import GemmaClient
+from app.gemma_client import GemmaClient, GemmaProviderError, get_runtime_config
 from app.schemas import AnalysisRequest, AnalysisResponse, Insight
 
 load_dotenv()
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Gemma Functional Analyst Copilot",
-    description="Turns messy requirements into user stories, acceptance criteria, test cases, summaries, and risk checklists with Gemma 4.",
+    description="Turns messy requirements into user stories, acceptance criteria, test cases, summaries, and risk checklists with Gemma.",
     version="1.0.0",
 )
 
@@ -25,6 +28,19 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+@app.on_event("startup")
+def log_startup_config() -> None:
+    config = get_runtime_config()
+    if config.demo_mode:
+        logger.info("Starting backend in demo mode. No Google GenAI calls will be made.")
+    else:
+        logger.info(
+            "Starting backend in google mode with provider=%s model=%s google_api_key_configured=%s",
+            config.provider,
+            config.model,
+            config.has_google_api_key,
+        )
 
 @app.post("/analyze", response_model=AnalysisResponse)
 def analyze(payload: AnalysisRequest) -> AnalysisResponse:
@@ -47,8 +63,12 @@ def analyze(payload: AnalysisRequest) -> AnalysisResponse:
             insights=metadata["insights"],
             warnings=metadata["warnings"],
         )
+    except GemmaProviderError as exc:
+        logger.warning("Gemma provider request failed: %s", exc.detail)
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        logger.exception("Unexpected analysis failure")
+        raise HTTPException(status_code=500, detail="Unexpected backend error while generating analysis.") from exc
 
 
 def build_metadata(raw_text: str, result: str, output_type: str) -> dict:

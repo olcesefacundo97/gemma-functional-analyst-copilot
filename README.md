@@ -1,6 +1,6 @@
 # Gemma Functional Analyst Copilot
 
-AI-powered workspace for Functional Analysts, Business Analysts, QA Analysts, and Product Owners. It turns messy requirements into structured delivery artifacts using Google Gemma 4.
+AI-powered workspace for Functional Analysts, Business Analysts, QA Analysts, and Product Owners. It turns messy requirements into structured delivery artifacts using Google Gemma.
 
 ## Links
 
@@ -10,7 +10,7 @@ AI-powered workspace for Functional Analysts, Business Analysts, QA Analysts, an
 
 ## Overview
 
-Functional analysis work often begins with rough meeting notes, incomplete Jira tickets, stakeholder comments, and scattered technical constraints. This MVP packages Gemma 4 into a focused product workflow that transforms that raw input into professional artifacts teams can review, test, and ship from.
+Functional analysis work often begins with rough meeting notes, incomplete Jira tickets, stakeholder comments, and scattered technical constraints. This MVP packages Gemma into a focused product workflow that transforms that raw input into professional artifacts teams can review, test, and ship from.
 
 ## Features
 
@@ -36,7 +36,7 @@ FastAPI + Pydantic
         |
         | Google AI Studio API
         v
-Gemma 4
+Gemma via Gemini API or demo provider
 ```
 
 ### Frontend
@@ -94,9 +94,11 @@ Backend:
 ```bash
 AI_PROVIDER=google
 GOOGLE_API_KEY=your_google_ai_studio_api_key_here
-GEMMA_MODEL=gemma-4-26b-a4b-it
+GEMMA_MODEL=gemma-3-27b-it
 ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
+
+`gemma-3-27b-it` is the documented Gemma model name for hosted Gemma generation through the Gemini API. Generate a Google AI Studio API key at [aistudio.google.com](https://aistudio.google.com/), then set it only in your local `.env` or hosting provider dashboard.
 
 Frontend:
 
@@ -109,6 +111,8 @@ For local demos without an API key, set:
 ```bash
 AI_PROVIDER=demo
 ```
+
+The public demo can run in either demo mode or real Gemma mode depending on the backend environment variables currently configured.
 
 ## Deployment
 
@@ -123,13 +127,37 @@ AI_PROVIDER=demo
 ### Render Backend
 
 1. Create a new Blueprint or Web Service from `render.yaml`.
-2. Add `GOOGLE_API_KEY`.
-3. Set `ALLOWED_ORIGINS` to the Vercel production URL.
-4. Deploy the FastAPI service.
+2. Open the Render dashboard path: **Dashboard -> gemma-functional-analyst-copilot-api -> Environment**.
+3. Set `AI_PROVIDER=google`.
+4. Set `GOOGLE_API_KEY` to the API key generated in [Google AI Studio](https://aistudio.google.com/).
+5. Set `GEMMA_MODEL=gemma-3-27b-it`.
+6. Set `ALLOWED_ORIGINS` to the Vercel production URL.
+7. Deploy the FastAPI service.
 
-## Why Gemma 4
+Do not commit API keys. Render stores `GOOGLE_API_KEY` as an environment variable; the repository only contains placeholders.
 
-Gemma 4 is used as the reasoning engine for a professional workflow, not as a generic chatbot. This use case benefits from strong instruction following, structured transformation, long-context requirement interpretation, and reliable generation of practical artifacts like tests, risks, and tickets.
+### Verify Real Gemma
+
+After the Render service is redeployed with `AI_PROVIDER=google`, test the production backend:
+
+```bash
+curl -X POST "https://gemma-functional-analyst-copilot.onrender.com/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "raw_text": "The city operations team needs a map-first dashboard to monitor active traffic incidents, road closures, and weather impact. Operators need filters by incident type and a details panel for selected events.",
+    "output_type": "qa_test_cases",
+    "project_context": "Public sector traffic operations MVP",
+    "language": "English"
+  }'
+```
+
+The JSON response should include `"model":"gemma-3-27b-it"` and generated Markdown that is not the static demo text.
+
+Google AI Studio free tier quotas and rate limits can interrupt production calls. The backend returns clean HTTP errors for invalid API keys, quota or rate limits, unavailable models, and Google API timeouts.
+
+## Why Gemma
+
+Gemma is used as the reasoning engine for a professional workflow, not as a generic chatbot. This use case benefits from strong instruction following, structured transformation, long-context requirement interpretation, and reliable generation of practical artifacts like tests, risks, and tickets.
 
 The model is asked to:
 
