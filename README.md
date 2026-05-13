@@ -94,11 +94,11 @@ Backend:
 ```bash
 AI_PROVIDER=google
 GOOGLE_API_KEY=your_google_ai_studio_api_key_here
-GEMMA_MODEL=gemma-4-26b-a4b-it
+GEMMA_MODEL=models/gemma-4-26b-a4b-it
 ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-`gemma-4-26b-a4b-it` is the hosted Gemma 4 model configured for real inference through the Google AI Studio API. Generate a Google AI Studio API key at [aistudio.google.com](https://aistudio.google.com/), then set it only in your local `.env` or hosting provider dashboard.
+`models/gemma-4-26b-a4b-it` is the hosted Gemma 4 model resource ID confirmed by the Google AI Studio model listing API for real inference. Generate a Google AI Studio API key at [aistudio.google.com](https://aistudio.google.com/), then set it only in your local `.env` or hosting provider dashboard.
 
 Frontend:
 
@@ -112,7 +112,7 @@ For local demos without an API key, set:
 AI_PROVIDER=demo
 ```
 
-The public deployment can run in either demo mode or real Gemma 4 mode depending on the backend environment variables currently configured. Production should use `AI_PROVIDER=google` with `GEMMA_MODEL=gemma-4-26b-a4b-it`; `AI_PROVIDER=demo` remains available as a local or fallback mode that returns clearly static sample deliverables.
+The public deployment can run in either demo mode or real Gemma 4 mode depending on the backend environment variables currently configured. Production should use `AI_PROVIDER=google` with `GEMMA_MODEL=models/gemma-4-26b-a4b-it`; `AI_PROVIDER=demo` remains available as a local or fallback mode that returns clearly static sample deliverables.
 
 ## Deployment
 
@@ -130,7 +130,7 @@ The public deployment can run in either demo mode or real Gemma 4 mode depending
 2. Open the Render dashboard path: **Dashboard -> gemma-functional-analyst-copilot-api -> Environment**.
 3. Set `AI_PROVIDER=google`.
 4. Set `GOOGLE_API_KEY` to the API key generated in [Google AI Studio](https://aistudio.google.com/).
-5. Set `GEMMA_MODEL=gemma-4-26b-a4b-it`.
+5. Set `GEMMA_MODEL=models/gemma-4-26b-a4b-it`.
 6. Set `ALLOWED_ORIGINS` to the Vercel production URL.
 7. Deploy the FastAPI service.
 
@@ -151,7 +151,7 @@ curl -X POST "https://gemma-functional-analyst-copilot.onrender.com/analyze" \
   }'
 ```
 
-The JSON response should include `"model":"gemma-4-26b-a4b-it"` and generated Markdown that is not the static demo text.
+The JSON response should include `"model":"models/gemma-4-26b-a4b-it"` and generated Markdown that is not the static demo text.
 
 Google AI Studio free tier quotas and rate limits can interrupt production calls. The backend returns clean HTTP errors for invalid API keys, quota or rate limits, unavailable models, and Google API timeouts.
 

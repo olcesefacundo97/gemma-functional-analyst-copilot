@@ -59,7 +59,7 @@ For this MVP, Gemma is used to:
 - produce enterprise-grade Markdown,
 - support multilingual output.
 
-The default hosted model is configured as `gemma-4-26b-a4b-it`, the hosted Gemma 4 model available through the Google AI Studio API. The backend abstraction can also run in demo mode for local portfolio reviews or public demos where no API key is configured.
+The default hosted model is configured as `models/gemma-4-26b-a4b-it`, the hosted Gemma 4 model resource ID confirmed by the Google AI Studio API model listing. The backend abstraction can also run in demo mode for local portfolio reviews or public demos where no API key is configured.
 
 ## Architecture
 
@@ -117,10 +117,10 @@ The backend uses a provider abstraction controlled by environment variables:
 ```text
 AI_PROVIDER=google
 GOOGLE_API_KEY=<set in Render or local .env only>
-GEMMA_MODEL=gemma-4-26b-a4b-it
+GEMMA_MODEL=models/gemma-4-26b-a4b-it
 ```
 
-API keys are generated in [Google AI Studio](https://aistudio.google.com/) and should never be committed. Production uses `AI_PROVIDER=google` with `GEMMA_MODEL=gemma-4-26b-a4b-it` for real Gemma 4 inference. For a static public demo or local review mode, set `AI_PROVIDER=demo`. The public deployment may run in either mode depending on the configured Render environment.
+API keys are generated in [Google AI Studio](https://aistudio.google.com/) and should never be committed. Production uses `AI_PROVIDER=google` with `GEMMA_MODEL=models/gemma-4-26b-a4b-it` for real Gemma 4 inference. For a static public demo or local review mode, set `AI_PROVIDER=demo`. The public deployment may run in either mode depending on the configured Render environment.
 
 To verify real Gemma generation after deployment:
 
@@ -135,7 +135,7 @@ curl -X POST "https://gemma-functional-analyst-copilot.onrender.com/analyze" \
   }'
 ```
 
-The response should include `"model":"gemma-4-26b-a4b-it"` and a generated deliverable that is not one of the static demo templates. Google AI Studio free tier quota, rate limits, invalid keys, unavailable models, and timeouts are handled as clean API errors by the FastAPI backend.
+The response should include `"model":"models/gemma-4-26b-a4b-it"` and a generated deliverable that is not one of the static demo templates. Google AI Studio free tier quota, rate limits, invalid keys, unavailable models, and timeouts are handled as clean API errors by the FastAPI backend.
 
 The third challenge was making generated text feel actionable. The app adds confidence, warnings, insights, editable output, history, and exports so generation is only one step in a broader delivery process.
 

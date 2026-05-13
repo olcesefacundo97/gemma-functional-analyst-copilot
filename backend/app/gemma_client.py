@@ -4,7 +4,12 @@ from dataclasses import dataclass
 from app.prompts import SYSTEM_INSTRUCTION, build_prompt
 from app.schemas import OutputType
 
-DEFAULT_GEMMA_MODEL = "gemma-4-26b-a4b-it"
+DEFAULT_GEMMA_MODEL = "models/gemma-4-26b-a4b-it"
+LEGACY_GEMMA_MODELS = {
+    "gemma-3-27b-it",
+    "models/gemma-3-27b-it",
+    "gemma-4-26b-a4b-it",
+}
 logger = logging.getLogger(__name__)
 
 
@@ -26,13 +31,20 @@ class GemmaRuntimeConfig:
 def get_runtime_config() -> GemmaRuntimeConfig:
     provider = os.getenv("AI_PROVIDER", "demo").strip().lower()
     api_key = os.getenv("GOOGLE_API_KEY")
-    model = os.getenv("GEMMA_MODEL", DEFAULT_GEMMA_MODEL).strip() or DEFAULT_GEMMA_MODEL
+    model = _resolve_gemma_model(os.getenv("GEMMA_MODEL"))
     return GemmaRuntimeConfig(
         provider=provider,
         model=model,
         demo_mode=provider == "demo",
         has_google_api_key=bool(api_key),
     )
+
+
+def _resolve_gemma_model(value: str | None) -> str:
+    model = (value or DEFAULT_GEMMA_MODEL).strip()
+    if not model or model in LEGACY_GEMMA_MODELS:
+        return DEFAULT_GEMMA_MODEL
+    return model
 
 
 class GemmaClient:
