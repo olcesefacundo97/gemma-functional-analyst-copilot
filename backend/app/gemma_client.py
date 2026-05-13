@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from app.prompts import SYSTEM_INSTRUCTION, build_prompt
 from app.schemas import OutputType
 
-DEFAULT_GEMMA_MODEL = "gemma-3-27b-it"
+DEFAULT_GEMMA_MODEL = "gemma-4-26b-a4b-it"
 logger = logging.getLogger(__name__)
 
 
