@@ -5,7 +5,7 @@ AI-powered workspace for Functional Analysts, Business Analysts, QA Analysts, an
 ## Links
 
 - GitHub: https://github.com/olcesefacundo97/gemma-functional-analyst-copilot
-- Frontend Demo: https://gemma-functional-analyst-copilot.vercel.app
+- Frontend Demo: https://gemma-functional-analyst-copilot-cl.vercel.app
 - Backend API: https://gemma-functional-analyst-copilot.onrender.com
 
 ## Overview
