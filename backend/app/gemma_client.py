@@ -69,6 +69,37 @@ class GemmaClient:
         )
         logger.info("Gemma provider initialized in google mode with model=%s", self.model)
 
+    def list_gemma_models(self) -> list[dict[str, object]]:
+        if self.demo_mode:
+            raise GemmaProviderError(
+                "Gemma model diagnostics require AI_PROVIDER=google.",
+                status_code=503,
+            )
+
+        models = []
+        for model in self.client.models.list(config={"page_size": 1000}):  # type: ignore[union-attr]
+            name = getattr(model, "name", "") or ""
+            display_name = getattr(model, "display_name", "") or ""
+            description = getattr(model, "description", "") or ""
+            search_text = " ".join([name, display_name, description]).lower()
+            if "gemma" not in search_text:
+                continue
+
+            supported_actions = list(getattr(model, "supported_actions", []) or [])
+            models.append(
+                {
+                    "name": name,
+                    "display_name": display_name,
+                    "version": getattr(model, "version", None),
+                    "description": description,
+                    "input_token_limit": getattr(model, "input_token_limit", None),
+                    "output_token_limit": getattr(model, "output_token_limit", None),
+                    "supported_actions": supported_actions,
+                    "supports_generate_content": "generateContent" in supported_actions,
+                }
+            )
+        return models
+
     def analyze(self, raw_text: str, output_type: OutputType, project_context: str, language: str) -> str:
         if self.demo_mode:
             return self._demo_response(raw_text, output_type, project_context, language)

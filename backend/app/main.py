@@ -29,6 +29,21 @@ app.add_middleware(
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+@app.get("/diagnostics/gemma-models")
+def gemma_model_diagnostics() -> dict[str, object]:
+    try:
+        config = get_runtime_config()
+        client = GemmaClient()
+        models = client.list_gemma_models()
+        return {
+            "provider": config.provider,
+            "configured_model": config.model,
+            "gemma_models": models,
+        }
+    except GemmaProviderError as exc:
+        logger.warning("Gemma model diagnostics failed: %s", exc.detail)
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
 @app.on_event("startup")
 def log_startup_config() -> None:
     config = get_runtime_config()
